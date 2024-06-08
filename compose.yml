@@ -20,5 +20,18 @@ services:
       - MYSQL_DATABASE=your_database
       - MYSQL_USER=your_user
       - MYSQL_PASSWORD=your_password
+    ports:
+      - 3306:3306
     volumes:
       - ./mysql:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - 8080:80
+    environment:
+      - PMA_HOST=mysql
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+    depends_on:
+      - mysql
