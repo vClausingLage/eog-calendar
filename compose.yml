@@ -28,10 +28,12 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     ports:
-      - 8080:80
+      - 8081:80
     environment:
-      - PMA_HOST=mysql
-      - PMA_USER=root
-      - PMA_PASSWORD=root
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: your_password
+      MYSQL_USER: your_user
+      MYSQL_PASSWORD: your_password
     depends_on:
       - mysql

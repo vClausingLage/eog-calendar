@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     timeSelect.style.display = 'block';
                     timeSelect.addEventListener('change', () => {
                         const selectedDateTime = dateString + 'T' + timeSelect.value;
-                        fetch('check_termin.php', {
+                        fetch('check_appointment.php', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/x-www-form-urlencoded'
