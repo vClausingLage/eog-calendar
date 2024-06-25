@@ -5,14 +5,110 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terminvereinbarung</title>
-    <link rel="stylesheet" href="main.css">
-    <script src="calendar.js" type="module" defer></script>
 </head>
 
 <body>
 
-    <form id="termin-form" action="submit_appointment.php" method="post">
-        <label for="name">Name:</label>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        form {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input,
+        button,
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .calendar {
+            display: flex;
+            flex-wrap: wrap;
+            max-width: 300px;
+            margin: auto;
+        }
+
+        .calendar div {
+            width: calc(100% / 7);
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .available {
+            background-color: #d4edda;
+        }
+
+        .unavailable {
+            background-color: #f8d7da;
+        }
+
+        .selected {
+            border: 2px solid #333;
+        }
+
+        #time-select {
+            display: none;
+        }
+
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 300px;
+            margin: 10px auto;
+        }
+
+        .calendar-controls button {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: grey;
+        }
+
+        .appointmentAlert {
+            display: block;
+            margin: 2rem;
+            padding: 1rem;
+            border-radius: 2rem;
+            text-align: center;
+        }
+    </style>
+
+    <form id="appointments" action="">
+        <label for=" name">Name:</label>
         <input type="text" id="name" name="name" required>
 
         <label for="prename">Vorname:</label>
@@ -27,7 +123,7 @@
         <label for="address">Adresse:</label>
         <input type="text" id="address" name="address" required>
 
-        <label for="termin">Termin:</label>
+        <label for="appointment">Termin:</label>
         <div class="calendar-controls">
             <button type="button" id="prev-month">&lt;</button>
             <span id="month-year"></span>
@@ -35,19 +131,180 @@
         </div>
         <div id="calendar" class="calendar"></div>
         <select id="time-select">
-            <option value="10:00">10:00</option>
-            <option value="11:00">11:00</option>
+            <option value="">bitte Uhrzeit wählen</option>
             <option value="12:00">12:00</option>
             <option value="13:00">13:00</option>
             <option value="14:00">14:00</option>
             <option value="15:00">15:00</option>
+            <option value="16:00">16:00</option>
         </select>
-        <input type="hidden" id="termin" name="termin" required>
+        <input type="hidden" id="appointment" name="appointment" required>
+
+        <div>
+            <p class="appointmentAlert"></p>
+        </div>
 
         <button type="submit">Absenden</button>
     </form>
 
-    <button onclick="location.href='get_appointments.php'">Get Appointments</button>
+    <script type="text/javascript">
+
+        let dateSelected
+
+        let available = false
+
+        window.onmessage = (event) => {
+            if (event.data?.dateCheck === 'pass') {
+                document.querySelector('.appointmentAlert').style.display = 'block'
+                document.querySelector('.appointmentAlert').style.border = '2px solid green'
+                document.querySelector('.appointmentAlert').innerText = 'verfügbar'
+                available = true
+            }
+            if (event.data?.dateCheck === 'nopass') {
+                document.querySelector('.appointmentAlert').style.display = 'block'
+                document.querySelector('.appointmentAlert').style.border = '2px solid orange'
+                document.querySelector('.appointmentAlert').innerText = 'nicht verfügbar'
+                available = false
+            }
+        }
+
+        // form submitting listener and logic
+        document.querySelector('#appointments').addEventListener('submit', submit)
+
+        function submit(e) {
+            e.preventDefault()
+            const name = document.querySelector('#name').value
+            const prename = document.querySelector('#prename').value
+            const email = document.querySelector('#email').value
+            const phone = document.querySelector('#phone').value
+            const address = document.querySelector('#address').value
+            const date = dateSelected
+            if (available) {
+                const payload = {
+                    newAppointment: {
+                        name: name,
+                        prename: prename,
+                        email: email,
+                        phone: phone,
+                        address: address,
+                        date: dateSelected,
+                    }
+                }
+                window.parent.postMessage(payload, "https://www.baumpflege-grun.de/")
+            }
+        }
+
+        // calendar listener and logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const calendar = document.getElementById('calendar');
+            const timeSelect = document.getElementById('time-select');
+            const terminInput = document.getElementById('termin');
+            const terminForm = document.getElementById('termin-form');
+            const monthYear = document.getElementById('month-year');
+            const prevMonthBtn = document.getElementById('prev-month');
+            const nextMonthBtn = document.getElementById('next-month');
+
+            const holidays = {
+                2024: [
+                    '2024-01-01', // Neujahr
+                    '2024-04-19', // Karfreitag
+                    '2024-04-21', // Ostersonntag
+                    '2024-04-22', // Ostermontag
+                    '2024-05-01', // Tag der Arbeit
+                    '2024-05-09', // Christi Himmelfahrt
+                    '2024-05-19', // Pfingstsonntag
+                    '2024-05-20', // Pfingstmontag
+                    '2024-10-03', // Tag der Deutschen Einheit
+                    '2024-10-31', // Reformationstag
+                    '2024-12-25', // Weihnachten
+                    '2024-12-26', // 2. Weihnachtstag
+                ],
+                2025: [
+                    '2025-01-01', // Neujahr
+                    '2025-04-04', // Karfreitag
+                    '2025-04-06', // Ostersonntag
+                    '2025-04-07', // Ostermontag
+                    '2025-05-01', // Tag der Arbeit
+                    '2025-05-29', // Christi Himmelfahrt
+                    '2025-06-08', // Pfingstsonntag
+                    '2025-06-09', // Pfingstmontag
+                    '2025-10-03', // Tag der Deutschen Einheit
+                    '2025-10-31', // Reformationstag
+                    '2025-12-25', // Weihnachten
+                    '2025-12-26', // 2. Weihnachtstag
+                ]
+            };
+
+            let currentMonth = new Date().getMonth();
+            let currentYear = new Date().getFullYear();
+
+            const updateCalendar = () => {
+                calendar.innerHTML = '';
+                const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+                const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+
+                monthYear.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+                for (let i = 0; i < firstDay; i++) {
+                    const emptyCell = document.createElement('div');
+                    calendar.appendChild(emptyCell);
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const date = new Date(currentYear, currentMonth, day);
+                    const dateString = date.toISOString().split('T')[0];
+                    const dayElement = document.createElement('div');
+                    dayElement.textContent = day;
+
+                    if (date.getDay() === 5 && !holidays[currentYear]?.includes(dateString)) { // Friday and not a holiday
+                        dayElement.classList.add('available');
+                        dayElement.addEventListener('click', () => {
+                            document.querySelectorAll('.calendar div').forEach(el => el.classList.remove('selected'));
+                            dayElement.classList.add('selected');
+                            timeSelect.style.display = 'block';
+                            timeSelect.addEventListener('change', () => {
+                                selectedDateTime = dateString + 'T' + timeSelect.value;
+                                // CHECK APPOINTMENTS XHTTP
+                                dateSelected = selectedDateTime
+                                const payload = { dateTimeCheck: dateSelected }
+                                const check = () => {
+                                    window.parent.postMessage(payload, "https://www.baumpflege-grun.de/")
+                                }
+                                check()
+                                // END OF CHECK APPOINTMENTS XHTTP
+                            });
+                        });
+                    } else {
+                        dayElement.classList.add('unavailable');
+                    }
+
+                    calendar.appendChild(dayElement);
+                }
+            };
+
+            prevMonthBtn.addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                updateCalendar();
+            });
+
+            nextMonthBtn.addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                updateCalendar();
+            });
+
+            updateCalendar();
+        });
+
+    </script>
 
 </body>
 
