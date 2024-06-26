@@ -1,12 +1,11 @@
-# for the editor
-
+# WixEditor Code
 
 ```javascript
 import wixData from "wix-data"
 
 // document ready
 $w.onReady(function () {
-    // listen to message events
+  // listen to post message events from html
   $w("#html2").onMessage((event) => {
     let receivedData = event.data;
     // store date and appointment data
